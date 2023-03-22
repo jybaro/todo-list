@@ -1,6 +1,6 @@
-# stickyNotes
+# TODO List
 
-Implements a dashboard with editable sticky notes.
+Implements a TODO List dashboard with editable sticky notes.
 
 ## Architecture
 
