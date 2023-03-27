@@ -30,10 +30,19 @@ module.exports = {
         use: ["style-loader", "css-loader", "postcss-loader"],
       },
       {
-        test: /\.(ts|tsx|js|jsx)$/,
-        exclude: /node_modules/,
-        use: {
-          loader: "babel-loader",
+        test: /\.(js|jsx)$/,
+        loader: 'esbuild-loader',
+        options: {
+          loader: 'jsx',
+          target: 'es2015',
+        },
+      },
+      {
+        test: /\.(ts|tsx)$/,
+        loader: 'esbuild-loader',
+        options: {
+          loader: 'tsx',
+          target: 'es2015',
         },
       },
     ],

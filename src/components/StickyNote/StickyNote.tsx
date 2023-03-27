@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { ChangeSizeControl } from './components/ChangeSizeControl';
-import detectTrash from './helpers/detectTrash';
+import { ChangeSizeControl } from './components/ChangeSizeControl/ChangeSizeControl';
+import detectZone from './helpers/detectZone';
 import generateUpperZIndex from './helpers/generateUpperZIndex';
-import { IStickyNote } from './../../models/StickyNote.interface';
+import { colors } from '../../constants/colors';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { IStickyNote } from '../../models/interfaces/StickyNote.interface';
+import { selectStickyNotesData } from '../../reducers/tasks/tasks.selectors';
+import { TaskService } from '../../services/tasks.service';
+import { setStickyNotesData } from '../../reducers/tasks/tasks.actions';
+import { useMutation, useQueryClient } from 'react-query';
 
-export const StickyNote = ({ id, saveStickyNoteData, stickyNoteData }) => {
+export const StickyNote = ({ id, stickyNoteData }) => {
   const [noteDisplay, setNoteDisplay] = useState(true);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
@@ -16,6 +22,21 @@ export const StickyNote = ({ id, saveStickyNoteData, stickyNoteData }) => {
   });
   const [initialInnerPointerPosition, setInitialInnerPointerPosition] =
     useState({ x: 0, y: 0 });
+
+  const stickyNotesData: IStickyNote[] = useAppSelector(selectStickyNotesData);
+  const dispatch = useAppDispatch();
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation(TaskService.updateTask, {
+    onSuccess: (data: any) => {
+      if (data.code && data.code !== 200) {
+      } else {
+        saveStickyNoteData(data);
+        queryClient.invalidateQueries('stickyNotes');
+      }
+    },
+    onError: () => {},
+  });
 
   useEffect(() => {
     if (stickyNoteData) {
@@ -29,13 +50,29 @@ export const StickyNote = ({ id, saveStickyNoteData, stickyNoteData }) => {
   const getUpperZIndex = () => {
     const upperZIndex = generateUpperZIndex();
     setZIndex(upperZIndex);
-    saveStickyNoteData(id, {
-      zIndex: upperZIndex,
+
+    mutation.mutate({
+      id,
+      zindex: upperZIndex,
     });
     return upperZIndex;
   };
 
-  const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
+  const saveStickyNoteData = (data) => {
+    const newStickyNotesData = stickyNotesData.map((stickyNoteData) => {
+      if (stickyNoteData.id === data.id) {
+        return {
+          ...stickyNoteData,
+          ...data,
+        };
+      }
+      return stickyNoteData;
+    });
+
+    dispatch(setStickyNotesData(newStickyNotesData));
+  };
+
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement> | any) => {
     getUpperZIndex();
     setInitialInnerPointerPosition({
       x: event.clientX - event.target.offsetLeft,
@@ -52,12 +89,21 @@ export const StickyNote = ({ id, saveStickyNoteData, stickyNoteData }) => {
   const handleDrag = (event: React.DragEvent<HTMLDivElement>) => {
     setDragging(true);
 
+    const doneElement = document.getElementById('done');
+    if (doneElement) {
+      if (detectZone({ x: event.clientX, y: event.clientY, id: 'done' })) {
+        doneElement.style.backgroundColor = colors.doneLight;
+      } else {
+        doneElement.style.backgroundColor = colors.doneDark;
+      }
+    }
+
     const trashElement = document.getElementById('trash');
     if (trashElement) {
-      if (detectTrash(event.clientX, event.clientY)) {
-        trashElement.style.backgroundColor = '#F00';
+      if (detectZone({ x: event.clientX, y: event.clientY, id: 'trash' })) {
+        trashElement.style.backgroundColor = colors.trashLight;
       } else {
-        trashElement.style.backgroundColor = '#900';
+        trashElement.style.backgroundColor = colors.trashDark;
       }
     }
   };
@@ -70,17 +116,26 @@ export const StickyNote = ({ id, saveStickyNoteData, stickyNoteData }) => {
         y: event.clientY - initialInnerPointerPosition.y,
       });
     }
-    if (detectTrash(event.clientX, event.clientY)) {
+    if (detectZone({ x: event.clientX, y: event.clientY, id: 'done' })) {
+      setNoteDisplay(false);
+    } else if (
+      detectZone({ x: event.clientX, y: event.clientY, id: 'trash' })
+    ) {
       setNoteDisplay(false);
     } else {
       setNoteDisplay(true);
     }
-    saveStickyNoteData(id, {
-      position: {
-        x: event.clientX - initialInnerPointerPosition.x,
-        y: event.clientY - initialInnerPointerPosition.y,
-      },
-      visible: !detectTrash(event.clientX, event.clientY),
+
+    mutation.mutate({
+      id,
+      top: event.clientY - initialInnerPointerPosition.y,
+      left: event.clientX - initialInnerPointerPosition.x,
+      deleted: !!detectZone({
+        x: event.clientX,
+        y: event.clientY,
+        id: 'trash',
+      }),
+      done: !!detectZone({ x: event.clientX, y: event.clientY, id: 'done' }),
     });
   };
 
@@ -91,8 +146,10 @@ export const StickyNote = ({ id, saveStickyNoteData, stickyNoteData }) => {
 
   const handleOnBlur = (event: React.FocusEvent<HTMLDivElement>) => {
     setEditable(false);
-    saveStickyNoteData(id, {
-      text: event.target.innerText,
+
+    mutation.mutate({
+      id,
+      description: event.target.innerText,
     });
   };
 
@@ -101,8 +158,9 @@ export const StickyNote = ({ id, saveStickyNoteData, stickyNoteData }) => {
   };
 
   const handleSizeChange = (size) => {
-    saveStickyNoteData(id, {
-      size,
+    mutation.mutate({
+      id,
+      ...size,
     });
   };
 

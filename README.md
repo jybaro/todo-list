@@ -32,4 +32,4 @@ To run this project it is only necessary to install the node packages with npm i
 
 - The status of all the sticky notes will be automatically saved to local storage. You can save using the backend API by clicking the "SAVE" button (mocked service).
 
-- To delete a sticky note, drag and drop it over the "TRASH" area in the bottom-right corner.
+- To complete a task, drag and drop it over the "DONE" area in the bottom-right corner.
