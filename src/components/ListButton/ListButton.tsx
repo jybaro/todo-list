@@ -1,12 +1,19 @@
 import React from 'react';
 import { useAppDispatch } from '../../store/hooks';
 import { showList } from '../../reducers/tasks/tasks.actions';
+import generateUpperZIndex from '../StickyNote/helpers/generateUpperZIndex';
 
-export const ListButton = () => {
+interface ListButtonArgs {
+  setZIndexModal: () => void;
+}
+
+export const ListButton = (props) => {
+  const { setZIndexModal } = props;
   const dispatch = useAppDispatch();
 
   const handleOnClick = () => {
     dispatch(showList(true));
+    setZIndexModal(generateUpperZIndex());
   };
 
   return (

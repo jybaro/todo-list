@@ -39,6 +39,7 @@ export default function Dashboard() {
   const user = useAppSelector(selectUser);
   const openModal = useAppSelector(selectShowedList);
   const dispatch = useAppDispatch();
+  const [zIndexModal, setZIndexModal] = useState(generateUpperZIndex());
 
   useEffect(() => {
     if (navigate && dispatch) {
@@ -66,7 +67,7 @@ export default function Dashboard() {
       <AddButton color="#FF9" label="Add yellow" />
       <AddButton color="#9FF" label="Add blue" />
       <AddButton color="#F99" label="Add red" />
-      <ListButton />
+      <ListButton {...{ setZIndexModal }} />
       <CloseButton />
 
       {stickyNotes && stickyNotes.items && stickyNotes.items.map
@@ -112,14 +113,18 @@ export default function Dashboard() {
         onClose={handleCloseModal}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
-        style={{ zIndex: generateUpperZIndex() }}
+        style={{ zIndex: zIndexModal }}
       >
         <Box sx={style}>
           <Typography id="modal-modal-title" variant="h6" component="h2">
             Task list
           </Typography>
-          <Typography id="modal-modal-description" sx={{ mt: 2 }}>
-            <TaskList />
+          <Typography
+            id="modal-modal-description"
+            sx={{ mt: 2 }}
+            component="div"
+          >
+            <TaskList tasks={stickyNotes?.items ?? []} />
           </Typography>
         </Box>
       </Modal>
